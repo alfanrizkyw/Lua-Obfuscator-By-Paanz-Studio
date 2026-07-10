@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lua Obfuscator by Paanz Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #04060e;
+            --bg2: #080c1a;
+            --card: #0b1025;
+            --card-hover: #101835;
+            --border: #162040;
+            --border-light: #1e2d55;
+            --text: #cdd4e8;
+            --text-bright: #e8ecf8;
+            --text-muted: #4a5a82;
+            --accent: #7eb8ff;
+            --accent-bright: #a8d0ff;
+            --accent-dim: #4a90d9;
+            --silver: #b0bdd4;
+            --silver-light: #d0d8e8;
+            --silver-dark: #6b7a96;
+            --glow-blue: rgba(80,140,255,0.12);
+            --glow-silver: rgba(180,195,220,0.06);
+            --danger: #ff4060;
+            --danger-glow: rgba(255,64,96,0.15);
+            --warning: #ffc040;
+            --sidebar-w: 290px;
+            --header-h: 58px;
+            --radius: 10px;
+            --radius-sm: 6px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 15px; }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+        .bg-layer {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(30,60,140,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 90%, rgba(20,40,100,0.1) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(15,25,60,0.08) 0%, transparent 50%),
+                linear-gradient(175deg, #04060e 0%, #070b18 40%, #0a0f22 70%, #060a16 100%);
+        }
+        .bg-grid {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(100,150,255,0.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100,150,255,0.018) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridDrift 40s linear infinite;
+        }
+        @keyframes gridDrift { to { transform: translate(60px, 60px); } }
+        .glow-orb {
+            position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+            filter: blur(120px);
+        }
+        .orb-1 { width: 600px; height: 600px; background: #1a3a8a; top: -200px; right: -150px; animation: orbFloat1 25s ease-in-out infinite; opacity: 0.15; }
+        .orb-2 { width: 450px; height: 450px; background: #0e2460; bottom: -120px; left: -100px; animation: orbFloat2 30s ease-in-out infinite; opacity: 0.12; }
+        .orb-3 { width: 300px; height: 300px; background: #2a4a90; top: 40%; left: 40%; animation: orbFloat3 22s ease-in-out infinite; opacity: 0.06; }
+        @keyframes orbFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-80px,100px)} }
+        @keyframes orbFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(90px,-70px)} }
+        @keyframes orbFloat3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.4)} }
+        .silver-line {
+            position: fixed; z-index: 0; pointer-events: none; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(180,200,240,0.08), transparent);
+        }
+        .silver-line-1 { top: 30%; left: 0; right: 0; transform: rotate(-2deg); }
+        .silver-line-2 { top: 70%; left: 0; right: 0; transform: rotate(1.5deg); }
+
+        #app { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; }
+        header {
+            height: var(--header-h); display: flex; align-items: center; gap: 12px;
+            padding: 0 20px;
+            background: linear-gradient(180deg, rgba(8,12,26,0.95) 0%, rgba(8,12,26,0.85) 100%);
+            backdrop-filter: blur(24px) saturate(1.2);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0; z-index: 10; position: relative;
+        }
+        header::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(126,184,255,0.15), rgba(180,200,230,0.1), transparent);
+        }
+        .header-brand { display: flex; align-items: center; gap: 11px; }
+        .header-brand .logo-img {
+            height: 32px; width: auto; object-fit: contain;
+            filter: brightness(1.1) contrast(1.05);
+            transition: filter 0.3s;
+        }
+        .header-brand .logo-img:hover { filter: brightness(1.3) contrast(1.1); }
+        .header-brand h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em; color: var(--silver-light); white-space: nowrap; }
+        .header-brand h1 .hl {
+            background: linear-gradient(135deg, var(--accent-bright), var(--silver-light));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-right { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+        .btn-hamburger {
+            display: none; background: none; border: 1px solid var(--border); color: var(--silver-dark);
+            width: 36px; height: 36px; border-radius: var(--radius-sm); cursor: pointer;
+            font-size: 1rem; transition: all 0.2s;
+        }
+        .btn-hamburger:hover { border-color: var(--accent-dim); color: var(--accent); }
+        .content-wrap { display: flex; flex: 1; overflow: hidden; }
+
+        #sidebar {
+            width: var(--sidebar-w); flex-shrink: 0; display: flex; flex-direction: column;
+            background: linear-gradient(180deg, rgba(6,10,22,0.95) 0%, rgba(4,6,14,0.98) 100%);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border);
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+            position: relative;
+        }
+        #sidebar::after {
+            content: ''; position: absolute; top: 0; right: -1px; bottom: 0; width: 1px;
+            background: linear-gradient(180deg, rgba(126,184,255,0.1), transparent 30%, transparent 70%, rgba(126,184,255,0.06));
+        }
+        .sidebar-header {
+            padding: 14px 16px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .sidebar-header h2 {
+            font-size: 0.72rem; font-weight: 700; color: var(--silver-dark);
+            text-transform: uppercase; letter-spacing: 0.14em;
+        }
+        .btn-icon {
+            background: none; border: 1px solid var(--border); color: var(--silver-dark);
+            width: 30px; height: 30px; border-radius: var(--radius-sm); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { border-color: var(--accent-dim); color: var(--accent); background: var(--glow-blue); }
+        .btn-icon.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-glow); }
+        .sidebar-list { flex: 1; overflow-y: auto; padding: 6px 8px; }
+
+        .folder-item { margin-bottom: 2px; }
+        .folder-header {
+            display: flex; align-items: center; gap: 7px; padding: 7px 9px;
+            border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .folder-header:hover { background: rgba(16,24,53,0.7); border-color: var(--border); }
+        .folder-header.active {
+            background: linear-gradient(135deg, rgba(30,60,130,0.15), rgba(20,40,90,0.1));
+            border-color: rgba(100,160,255,0.15);
+        }
+        .folder-header .chevron { font-size: 0.55rem; color: var(--text-muted); transition: transform 0.25s; width: 12px; text-align: center; }
+        .folder-header.open .chevron { transform: rotate(90deg); }
+        .folder-header .folder-icon { color: var(--warning); font-size: 0.85rem; width: 16px; text-align: center; }
+        .folder-header .folder-name { flex: 1; font-size: 0.84rem; font-weight: 500; color: var(--silver); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .folder-header .folder-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 0.2s; }
+        .folder-header:hover .folder-actions { opacity: 1; }
+        .btn-tiny {
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            width: 24px; height: 24px; border-radius: 4px; font-size: 0.7rem;
+            display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+        }
+        .btn-tiny:hover { color: var(--silver-light); background: var(--border); }
+        .btn-tiny.del:hover { color: var(--danger); background: var(--danger-glow); }
+        .folder-items { padding-left: 18px; overflow: hidden; transition: max-height 0.3s ease; }
+        .folder-items.collapsed { max-height: 0 !important; }
+        .code-item {
+            display: flex; align-items: center; gap: 7px; padding: 6px 9px;
+            border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;
+            border: 1px solid transparent; margin: 1px 0;
+        }
+        .code-item:hover { background: rgba(16,24,53,0.5); }
+        .code-item.active {
+            background: linear-gradient(135deg, rgba(30,60,130,0.12), rgba(20,40,90,0.08));
+            border-color: rgba(100,160,255,0.12);
+        }
+        .code-item .code-icon { color: var(--accent); font-size: 0.75rem; width: 14px; text-align: center; opacity: 0.7; }
+        .code-item .code-name { flex: 1; font-size: 0.8rem; color: var(--silver); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .code-item.active .code-name { color: var(--silver-light); }
+        .code-item .code-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 0.2s; }
+        .code-item:hover .code-actions { opacity: 1; }
+        .sidebar-empty {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 30px 20px; text-align: center; color: var(--text-muted); gap: 10px;
+        }
+        .sidebar-empty i { font-size: 1.8rem; opacity: 0.2; }
+        .sidebar-empty p { font-size: 0.78rem; line-height: 1.5; }
+
+        #sidebar-backdrop {
+            display: none; position: fixed; inset: 0; z-index: 98;
+            background: rgba(2,4,10,0.7); backdrop-filter: blur(6px);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        #sidebar-backdrop.show { display: block; opacity: 1; }
+
+        #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .main-tabs {
+            display: flex; align-items: center; gap: 0; padding: 0 20px;
+            border-bottom: 1px solid var(--border); flex-shrink: 0;
+            background: linear-gradient(180deg, rgba(8,12,26,0.6) 0%, rgba(6,10,20,0.4) 100%);
+            position: relative;
+        }
+        .main-tabs::after {
+            content: ''; position: absolute; bottom: -1px; left: 20px; right: 20px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100,160,255,0.06), transparent);
+        }
+        .tab-btn {
+            padding: 13px 18px; font-size: 0.82rem; font-weight: 500; font-family: inherit;
+            background: none; border: none; color: var(--text-muted); cursor: pointer;
+            position: relative; transition: color 0.25s;
+        }
+        .tab-btn:hover { color: var(--silver); }
+        .tab-btn.active { color: var(--accent-bright); }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 18px; right: 18px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-dim), var(--accent-bright));
+            border-radius: 2px 2px 0 0;
+        }
+        .tab-actions { margin-left: auto; display: flex; gap: 5px; padding: 8px 0; }
+        .btn-sm {
+            padding: 6px 13px; font-size: 0.75rem; font-weight: 600; font-family: inherit;
+            border-radius: var(--radius-sm); cursor: pointer; transition: all 0.25s;
+            display: inline-flex; align-items: center; gap: 5px;
+            border: 1px solid var(--border); background: var(--card); color: var(--silver);
+        }
+        .btn-sm:hover { border-color: var(--border-light); background: var(--card-hover); color: var(--silver-light); }
+        .btn-sm.primary {
+            background: linear-gradient(135deg, #1a4a9a, #2a5ab0);
+            color: var(--silver-light); border-color: rgba(80,140,255,0.25); font-weight: 700;
+        }
+        .btn-sm.primary:hover {
+            background: linear-gradient(135deg, #2255b0, #3568c0);
+            border-color: rgba(100,160,255,0.35);
+            box-shadow: 0 0 24px rgba(60,120,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .btn-sm.copy-btn.copied { border-color: var(--accent-dim); color: var(--accent-bright); }
+
+        .editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 14px 20px; gap: 10px; }
+        .editor-container {
+            flex: 1; position: relative; border-radius: var(--radius);
+            border: 1px solid var(--border); overflow: hidden;
+            background: linear-gradient(180deg, var(--bg2) 0%, rgba(6,10,20,0.8) 100%);
+            transition: border-color 0.25s, box-shadow 0.25s;
+        }
+        .editor-container:focus-within {
+            border-color: rgba(80,140,255,0.2);
+            box-shadow: 0 0 30px rgba(60,120,255,0.05), inset 0 0 30px rgba(60,120,255,0.02);
+        }
+        .editor-container textarea {
+            width: 100%; height: 100%; resize: none; border: none; outline: none;
+            background: transparent; color: var(--silver-light); padding: 16px 18px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; line-height: 1.75;
+            tab-size: 4; -moz-tab-size: 4; letter-spacing: 0.01em;
+        }
+        .editor-container textarea::placeholder { color: var(--text-muted); opacity: 0.5; }
+        .editor-container textarea[readonly] { color: var(--silver-dark); }
+        .editor-container .editor-label {
+            position: absolute; top: 8px; right: 12px; font-size: 0.6rem;
+            color: var(--text-muted); opacity: 0.3; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.12em; pointer-events: none;
+        }
+        .bottom-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0; padding: 0 4px;
+        }
+        .char-count { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .save-indicator { font-size: 0.7rem; color: var(--accent); opacity: 0; transition: opacity 0.3s; display: flex; align-items: center; gap: 4px; }
+        .save-indicator.show { opacity: 1; }
+
+        .empty-state {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 16px; padding: 40px; text-align: center;
+        }
+        .empty-state .empty-icon {
+            width: 76px; height: 76px; border-radius: 18px; display: flex;
+            align-items: center; justify-content: center; font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--card), var(--card-hover));
+            border: 1px solid var(--border); color: var(--text-muted);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+        .empty-state h3 { font-size: 1.1rem; font-weight: 600; color: var(--silver-light); }
+        .empty-state p { font-size: 0.82rem; color: var(--text-muted); max-width: 340px; line-height: 1.6; }
+
+        #modal-overlay {
+            position: fixed; inset: 0; z-index: 200; display: none;
+            align-items: center; justify-content: center; padding: 20px;
+            background: rgba(2,4,10,0.8); backdrop-filter: blur(10px);
+            opacity: 0; transition: opacity 0.25s;
+        }
+        #modal-overlay.show { display: flex; opacity: 1; }
+        .modal-box {
+            background: linear-gradient(180deg, #0e1428 0%, #0a0f20 100%);
+            border: 1px solid var(--border-light); border-radius: 14px;
+            width: 100%; max-width: 400px; padding: 28px;
+            transform: translateY(20px) scale(0.96); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 80px rgba(30,60,140,0.08);
+        }
+        #modal-overlay.show .modal-box { transform: translateY(0) scale(1); }
+        .modal-box h3 { font-size: 1.05rem; font-weight: 700; color: var(--silver-light); margin-bottom: 6px; }
+        .modal-box p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+        .modal-box .input-group { margin-bottom: 20px; }
+        .modal-box label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--silver-dark); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+        .modal-box input[type="text"] {
+            width: 100%; padding: 10px 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg2); color: var(--silver-light);
+            font-family: inherit; font-size: 0.88rem; outline: none; transition: all 0.2s;
+        }
+        .modal-box input[type="text"]:focus { border-color: var(--accent-dim); box-shadow: 0 0 16px rgba(60,120,255,0.08); }
+        .modal-box .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn-modal {
+            padding: 9px 20px; border-radius: var(--radius-sm); font-family: inherit;
+            font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border);
+        }
+        .btn-cancel { background: var(--bg2); color: var(--silver); }
+        .btn-cancel:hover { background: var(--card); border-color: var(--border-light); }
+        .btn-confirm {
+            background: linear-gradient(135deg, #1a4a9a, #2a5ab0);
+            color: var(--silver-light); border-color: rgba(80,140,255,0.25); font-weight: 700;
+        }
+        .btn-confirm:hover { background: linear-gradient(135deg, #2255b0, #3568c0); }
+        .btn-confirm.danger { background: linear-gradient(135deg, #8a1a2a, #a02040); border-color: rgba(255,64,96,0.25); }
+        .btn-confirm.danger:hover { background: linear-gradient(135deg, #a02040, #c02850); }
+
+        #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 11px 16px; border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 500;
+            display: flex; align-items: center; gap: 9px; min-width: 220px;
+            background: linear-gradient(135deg, #0e1428, #0c1020);
+            border: 1px solid var(--border-light);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(30,60,140,0.06);
+            animation: toastIn 0.35s cubic-bezier(0.4,0,0.2,1);
+            transition: all 0.3s; color: var(--silver);
+        }
+        .toast.removing { opacity: 0; transform: translateX(40px); }
+        .toast.success .toast-icon { color: var(--accent); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.info .toast-icon { color: var(--accent-dim); }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+
+        .watermark-footer {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 0;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 8px; pointer-events: none;
+            font-size: 0.6rem; color: var(--text-muted); opacity: 0.2; letter-spacing: 0.1em;
+            text-transform: uppercase; font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .btn-hamburger { display: flex; align-items: center; justify-content: center; }
+            #sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; transform: translateX(-100%); }
+            #sidebar.open { transform: translateX(0); }
+            .folder-header .folder-actions, .code-item .code-actions { opacity: 1; }
+            .tab-btn { padding: 11px 12px; font-size: 0.78rem; }
+            .tab-actions { flex-wrap: wrap; gap: 4px; }
+            .btn-sm { padding: 6px 9px; font-size: 0.7rem; }
+            .editor-wrap { padding: 10px 12px; }
+            .editor-container textarea { font-size: 0.74rem; padding: 12px; }
+            .main-tabs { padding: 0 10px; }
+            header { padding: 0 12px; }
+            #toast-container { bottom: 12px; right: 12px; left: 12px; }
+            .toast { min-width: auto; }
+        }
+        @media (max-width: 420px) {
+            .header-brand h1 { font-size: 0.85rem; }
+            .btn-sm span.btn-label { display: none; }
+            .header-brand .logo-img { height: 26px; }
+        }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in-up { animation: fadeInUp 0.4s ease both; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-layer"></div>
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+    <div class="silver-line silver-line-1"></div>
+    <div class="silver-line silver-line-2"></div>
+
+    <div id="app">
+        <header>
+            <button class="btn-hamburger" id="btnHamburger" aria-label="Toggle menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="header-brand">
+                <img src="https://z-cdn-media.chatglm.cn/files/337aecdb-af39-44e8-b685-595dabc566a2.png?auth_key=1883685780-46c312760765410f82375d81279197c5-0-8a75792d8d218cbb1569dfb06ca7b893" alt="Paanz Studio" class="logo-img">
+                <h1><span class="hl">Lua Obfuscator</span> by Paanz Studio</h1>
+            </div>
+            <div class="header-right">
+                <button class="btn-sm" id="btnNewFolder" title="Buat folder baru">
+                    <i class="fas fa-folder-plus"></i>
+                    <span class="btn-label">Folder Baru</span>
+                </button>
+                <button class="btn-sm" id="btnNewCode" title="Buat kode baru">
+                    <i class="fas fa-file-circle-plus"></i>
+                    <span class="btn-label">Kode Baru</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="content-wrap">
+            <aside id="sidebar">
+                <div class="sidebar-header">
+                    <h2>Proyek</h2>
+                </div>
+                <div class="sidebar-list" id="sidebarList"></div>
+            </aside>
+            <div id="sidebar-backdrop"></div>
+            <main id="main"></main>
+        </div>
+    </div>
+
+    <div class="watermark-footer">Paanz Studio &mdash; Lua Obfuscator</div>
+    <div id="modal-overlay"><div class="modal-box" id="modalBox"></div></div>
+    <div id="toast-container"></div>
+
+    <script>
+    const App = {
+        state: {
+            folders: [],
+            activeFolderId: null,
+            activeItemId: null,
+            activeTab: 'original'
+        },
+        _saveTimer: null,
+        _saveIndicatorTimer: null,
+
+        init() {
+            this.loadState();
+            this.renderSidebar();
+            this.renderMain();
+            this.bindEvents();
+        },
+
+        loadState() {
+            try {
+                const saved = localStorage.getItem('paanz_lua_obfuscator_data');
+                if (saved) {
+                    const p = JSON.parse(saved);
+                    this.state.folders = p.folders || [];
+                    this.state.activeFolderId = p.activeFolderId || null;
+                    this.state.activeItemId = p.activeItemId || null;
+                    this.state.activeTab = p.activeTab || 'original';
+                    if (this.state.activeFolderId && !this.getFolder(this.state.activeFolderId)) {
+                        this.state.activeFolderId = null;
+                        this.state.activeItemId = null;
+                    }
+                    if (this.state.activeItemId && !this.getActiveItem()) {
+                        this.state.activeItemId = null;
+                    }
+                }
+            } catch (e) { console.warn('Gagal memuat data:', e); }
+        },
+
+        saveState() {
+            try {
+                localStorage.setItem('paanz_lua_obfuscator_data', JSON.stringify({
+                    folders: this.state.folders,
+                    activeFolderId: this.state.activeFolderId,
+                    activeItemId: this.state.activeItemId,
+                    activeTab: this.state.activeTab
+                }));
+                this.showSaveIndicator();
+            } catch (e) { console.warn('Gagal menyimpan:', e); }
+        },
+
+        debounceSave() {
+            clearTimeout(this._saveTimer);
+            this._saveTimer = setTimeout(() => this.saveState(), 400);
+        },
+
+        genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 8); },
+        getFolder(id) { return this.state.folders.find(f => f.id === id) || null; },
+        getActiveItem() {
+            if (!this.state.activeFolderId || !this.state.activeItemId) return null;
+            const f = this.getFolder(this.state.activeFolderId);
+            return f ? (f.items.find(i => i.id === this.state.activeItemId) || null) : null;
+        },
+        showSaveIndicator() {
+            const el = document.getElementById('saveIndicator');
+            if (!el) return;
+            el.classList.add('show');
+            clearTimeout(this._saveIndicatorTimer);
+            this._saveIndicatorTimer = setTimeout(() => el.classList.remove('show'), 2000);
+        },
+        escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; },
+
+        createFolder(name) {
+            if (!name || !name.trim()) return;
+            const folder = { id: this.genId(), name: name.trim(), open: true, items: [] };
+            this.state.folders.push(folder);
+            this.state.activeFolderId = folder.id;
+            this.state.activeItemId = null;
+            this.saveState(); this.renderSidebar(); this.renderMain();
+            this.toast('Folder "' + folder.name + '" dibuat', 'success');
+        },
+        renameFolder(id, n) {
+            const f = this.getFolder(id); if (!f || !n || !n.trim()) return;
+            f.name = n.trim(); this.saveState(); this.renderSidebar();
+            this.toast('Folder diubah nama', 'success');
+        },
+        deleteFolder(id) {
+            const i = this.state.folders.findIndex(f => f.id === id); if (i === -1) return;
+            const n = this.state.folders[i].name;
+            this.state.folders.splice(i, 1);
+            if (this.state.activeFolderId === id) {
+                this.state.activeFolderId = this.state.folders.length ? this.state.folders[0].id : null;
+                this.state.activeItemId = null;
+            }
+            this.saveState(); this.renderSidebar(); this.renderMain();
+            this.toast('Folder "' + n + '" dihapus', 'info');
+        },
+        toggleFolder(id) { const f = this.getFolder(id); if (f) { f.open = !f.open; this.saveState(); this.renderSidebar(); } },
+        selectFolder(id) {
+            this.state.activeFolderId = id; this.state.activeItemId = null;
+            this.saveState(); this.renderSidebar(); this.renderMain(); this.closeSidebarMobile();
+        },
+
+        createItem(fid, name) {
+            const f = this.getFolder(fid); if (!f || !name || !name.trim()) return;
+            const item = { id: this.genId(), name: name.trim(), original: '', obfuscated: '', createdAt: Date.now(), updatedAt: Date.now() };
+            f.items.push(item); f.open = true;
+            this.state.activeFolderId = fid; this.state.activeItemId = item.id; this.state.activeTab = 'original';
+            this.saveState(); this.renderSidebar(); this.renderMain();
+            this.toast('Kode "' + item.name + '" dibuat', 'success');
+            setTimeout(() => { const ta = document.getElementById('codeTextarea'); if (ta) ta.focus(); }, 100);
+        },
+        renameItem(fid, iid, n) {
+            const f = this.getFolder(fid); if (!f) return;
+            const it = f.items.find(i => i.id === iid); if (!it || !n || !n.trim()) return;
+            it.name = n.trim(); it.updatedAt = Date.now();
+            this.saveState(); this.renderSidebar(); this.toast('Kode diubah nama', 'success');
+        },
+        deleteItem(fid, iid) {
+            const f = this.getFolder(fid); if (!f) return;
+            const i = f.items.findIndex(x => x.id === iid); if (i === -1) return;
+            const n = f.items[i].name; f.items.splice(i, 1);
+            if (this.state.activeItemId === iid) this.state.activeItemId = f.items.length ? f.items[0].id : null;
+            this.saveState(); this.renderSidebar(); this.renderMain();
+            this.toast('Kode "' + n + '" dihapus', 'info');
+        },
+        selectItem(fid, iid) {
+            this.state.activeFolderId = fid; this.state.activeItemId = iid;
+            this.saveState(); this.renderSidebar(); this.renderMain(); this.closeSidebarMobile();
+        },
+        updateOriginal(code) {
+            const it = this.getActiveItem(); if (!it) return;
+            it.original = code; it.updatedAt = Date.now(); this.debounceSave();
+            const cc = document.getElementById('charCount');
+            if (cc) cc.textContent = code.length + ' karakter';
+        },
+
+        /* ===== OBFUSCATION ENGINE ===== */
+        obfuscateLua(code) {
+            if (!code || !code.trim()) return '';
+            const bytes = new TextEncoder().encode(code);
+            const shiftKey = Math.floor(Math.random() * 200) + 1;
+            let hexData = '';
+            for (let i = 0; i < bytes.length; i++) {
+                hexData += ((bytes[i] + shiftKey) % 256).toString(16).padStart(2, '0');
+            }
+            const numChunks = Math.min(Math.max(2, Math.ceil(hexData.length / 300)), 6);
+            const chunkSize = Math.ceil(hexData.length / numChunks);
+            const chunks = [];
+            for (let i = 0; i < hexData.length; i += chunkSize) chunks.push(hexData.substring(i, i + chunkSize));
+            function rv(len) {
+                const c = '_abcdefghijklmnopqrstuvwxyz'; let n = c[Math.floor(Math.random() * 27)];
+                for (let i = 1; i < len; i++) n += c[Math.floor(Math.random() * 27)]; return n;
+            }
+            const vS=rv(14),vC=rv(12),vG=rv(11),vCo=rv(10),vK=rv(8),vD=rv(13),vT=rv(9),vI=rv(7);
+            const cv = chunks.map(() => rv(11));
+            const indices = chunks.map((_, i) => i);
+            for (let i = indices.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [indices[i], indices[j]] = [indices[j], indices[i]]; }
+            function dead() {
+                const p = [
+                    () => { const a=rv(5),b=rv(4),n=Math.floor(Math.random()*15)+5; return `local ${a}=0;for ${b}=1,${n} do ${a}=${a}+${b} end;`; },
+                    () => { const a=rv(5),b=rv(4); return `local ${a}={${Array.from({length:Math.floor(Math.random()*4)+2},()=>Math.floor(Math.random()*999)).join(',')}};local ${b}=#${a};`; },
+                    () => { const a=rv(5),b=rv(4),v=Math.floor(Math.random()*2); return `local ${a}=${v};if ${a}==1 then ${a}=0 else ${a}=1 end;local ${b}=${a};`; },
+                    () => { const a=rv(5),b=rv(4),v=Math.floor(Math.random()*99)+10; return `local ${a}=tostring(${v});local ${b}=${a}..${a};`; },
+                    () => { const a=rv(4),b=rv(4),c=rv(4); return `local ${a}=0;for ${b}=1,3 do for ${c}=1,2 do ${a}=${a}+1 end end;`; },
+                    () => { const a=rv(6),b=rv(5); return `local function ${a}() local ${b}=0 return ${b} end;${a}();`; },
+                    () => { const a=rv(5),b=rv(5),c=rv(4),n=Math.floor(Math.random()*5)+2; return `local ${a}={};for ${b}=1,${n} do ${a}[${b}]=${b}*${Math.floor(Math.random()*9)+1} end;local ${c}=${a}[1] or 0;`; }
+                ];
+                return p[Math.floor(Math.random() * p.length)]();
+            }
+            let o = '-- Obfuscator Lua by Paanz Studio\n';
+            o += `local ${vS}=string;local ${vC}=${vS}["char"];local ${vG}=${vS}["gmatch"];local ${vCo}=table["concat"];\n`;
+            o += dead() + '\n';
+            o += `local ${vK}=${shiftKey};\n`;
+            for (let i = 0; i < chunks.length; i++) o += `local ${cv[i]}="${chunks[i]}";\n`;
+            o += `local ${vD}=` + indices.map(i => cv[i]).join('..') + ';\n';
+            o += dead() + '\n';
+            o += `local ${vT}={};\n`;
+            o += `for ${vI} in ${vG}(${vD},"..") do ${vT}[#${vT}+1]=${vC}((((tonumber(${vI},16))-${vK})%256)) end;\n`;
+            o += dead() + '\n';
+            o += `load(${vCo}(${vT}))();\n`;
+            return o;
+        },
+
+        runObfuscate() {
+            const it = this.getActiveItem();
+            if (!it) { this.toast('Pilih kode terlebih dahulu', 'error'); return; }
+            if (!it.original.trim()) { this.toast('Tidak ada kode untuk diobfuscasi', 'error'); return; }
+            it.obfuscated = this.obfuscateLua(it.original);
+            it.updatedAt = Date.now();
+            this.state.activeTab = 'obfuscated';
+            this.saveState(); this.renderMain();
+            this.toast('Kode berhasil diobfuscasi', 'success');
+        },
+
+        async copyCode(type) {
+            const it = this.getActiveItem(); if (!it) return;
+            const text = type === 'original' ? it.original : it.obfuscated;
+            if (!text || !text.trim()) { this.toast('Tidak ada kode untuk disalin', 'error'); return; }
+            try { await navigator.clipboard.writeText(text); }
+            catch (e) {
+                const ta = document.createElement('textarea'); ta.value = text;
+                ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta);
+                ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+            }
+            this.toast('Kode berhasil disalin', 'success');
+            const btn = document.getElementById(type === 'original' ? 'btnCopyOriginal' : 'btnCopyObfuscated');
+            if (btn) {
+                btn.classList.add('copied');
+                btn.innerHTML = '<i class="fas fa-check"></i> <span class="btn-label">Tersalin</span>';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = type === 'original'
+                        ? '<i class="fas fa-copy"></i> <span class="btn-label">Salin Asli</span>'
+                        : '<i class="fas fa-copy"></i> <span class="btn-label">Salin Hasil</span>';
+                }, 2000);
+            }
+        },
+
+        /* ===== RENDER ===== */
+        renderSidebar() {
+            const list = document.getElementById('sidebarList');
+            if (!this.state.folders.length) {
+                list.innerHTML = '<div class="sidebar-empty"><i class="fas fa-folder-open"></i><p>Belum ada folder.<br>Buat folder pertama untuk memulai.</p></div>';
+                return;
+            }
+            let h = '';
+            for (const f of this.state.folders) {
+                const act = f.id === this.state.activeFolderId;
+                h += `<div class="folder-item"><div class="folder-header ${act?'active':''} ${f.open?'open':''}" data-folder-id="${f.id}">`;
+                h += `<span class="chevron"><i class="fas fa-chevron-right"></i></span>`;
+                h += `<span class="folder-icon"><i class="fas fa-folder${f.open?'-open':''}"></i></span>`;
+                h += `<span class="folder-name" title="${this.escHtml(f.name)}">${this.escHtml(f.name)}</span>`;
+                h += `<span class="folder-actions">`;
+                h += `<button class="btn-tiny" data-action="add-code" data-folder-id="${f.id}" title="Tambah kode"><i class="fas fa-plus"></i></button>`;
+                h += `<button class="btn-tiny" data-action="rename-folder" data-folder-id="${f.id}" title="Ubah nama"><i class="fas fa-pen"></i></button>`;
+                h += `<button class="btn-tiny del" data-action="delete-folder" data-folder-id="${f.id}" title="Hapus"><i class="fas fa-trash"></i></button>`;
+                h += `</span></div>`;
+                h += `<div class="folder-items ${f.open?'':'collapsed'}" style="max-height:${f.open?(f.items.length*38+10)+'px':'0'}">`;
+                if (!f.items.length) h += `<div style="padding:5px 10px;font-size:0.72rem;color:var(--text-muted);opacity:0.4;">Kosong</div>`;
+                for (const it of f.items) {
+                    const ia = it.id === this.state.activeItemId;
+                    h += `<div class="code-item ${ia?'active':''}" data-folder-id="${f.id}" data-item-id="${it.id}">`;
+                    h += `<span class="code-icon"><i class="fas fa-file-code"></i></span>`;
+                    h += `<span class="code-name" title="${this.escHtml(it.name)}">${this.escHtml(it.name)}</span>`;
+                    h += `<span class="code-actions">`;
+                    h += `<button class="btn-tiny" data-action="rename-item" data-folder-id="${f.id}" data-item-id="${it.id}" title="Ubah nama"><i class="fas fa-pen"></i></button>`;
+                    h += `<button class="btn-tiny del" data-action="delete-item" data-folder-id="${f.id}" data-item-id="${it.id}" title="Hapus"><i class="fas fa-trash"></i></button>`;
+                    h += `</span></div>`;
+                }
+                h += `</div></div>`;
+            }
+            list.innerHTML = h;
+        },
+
+        renderMain() {
+            const main = document.getElementById('main');
+            const it = this.getActiveItem();
+            if (!it) {
+                const hf = this.state.folders.length > 0;
+                main.innerHTML = `<div class="empty-state fade-in-up">
+                    <div class="empty-icon"><i class="fas ${hf?'fa-file-circle-plus':'fa-shield-halved'}"></i></div>
+                    <h3>${hf?'Pilih atau Buat Kode Baru':'Selamat Datang'}</h3>
+                    <p>${hf?'Pilih folder di sidebar lalu klik + untuk membuat kode baru, atau pilih kode yang sudah ada.':'Mulai dengan membuat folder baru menggunakan tombol "Folder Baru" di atas.'}</p></div>`;
+                return;
+            }
+            const isO = this.state.activeTab === 'original';
+            const code = isO ? it.original : it.obfuscated;
+            main.innerHTML = `
+                <div class="main-tabs fade-in-up">
+                    <button class="tab-btn ${isO?'active':''}" data-tab="original"><i class="fas fa-code" style="margin-right:5px;opacity:0.5;"></i>Kode Asli</button>
+                    <button class="tab-btn ${!isO?'active':''}" data-tab="obfuscated"><i class="fas fa-lock" style="margin-right:5px;opacity:0.5;"></i>Terobfuscasi</button>
+                    <div class="tab-actions">
+                        <button class="btn-sm primary" id="btnObfuscate"><i class="fas fa-shield-halved"></i><span class="btn-label">Obfuscasi</span></button>
+                        <button class="btn-sm copy-btn" id="btnCopyOriginal"><i class="fas fa-copy"></i><span class="btn-label">Salin Asli</span></button>
+                        <button class="btn-sm copy-btn" id="btnCopyObfuscated"><i class="fas fa-copy"></i><span class="btn-label">Salin Hasil</span></button>
+                    </div>
+                </div>
+                <div class="editor-wrap fade-in-up" style="animation-delay:0.05s;">
+                    <div class="editor-container">
+                        <span class="editor-label">${isO?'INPUT':'OUTPUT'}</span>
+                        <textarea id="codeTextarea" placeholder="${isO?'Tempelkan kode Lua Anda di sini...':'Kode terobfuscasi akan muncul di sini...'}" ${!isO?'readonly':''} spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">${this.escHtml(code)}</textarea>
+                    </div>
+                    <div class="bottom-bar">
+                        <span class="char-count" id="charCount">${code.length} karakter</span>
+                        <span class="save-indicator" id="saveIndicator"><i class="fas fa-check-circle"></i> Tersimpan</span>
+                    </div>
+                </div>`;
+            this.bindMainEvents();
+        },
+
+        /* ===== MODALS ===== */
+        showModal(c) { const o=document.getElementById('modal-overlay'),b=document.getElementById('modalBox'); b.innerHTML=c; o.classList.add('show'); setTimeout(()=>{const i=b.querySelector('input[type="text"]');if(i)i.focus();},100); },
+        hideModal() { document.getElementById('modal-overlay').classList.remove('show'); },
+
+        showCreateFolderModal() {
+            this.showModal(`<h3>Buat Folder Baru</h3><p>Masukkan nama untuk folder baru.</p><div class="input-group"><label>Nama Folder</label><input type="text" id="modalInput" placeholder="contoh: Game Scripts" maxlength="50"></div><div class="modal-actions"><button class="btn-modal btn-cancel" id="modalCancel">Batal</button><button class="btn-modal btn-confirm" id="modalConfirm">Buat</button></div>`);
+            const ok=()=>{this.createFolder(document.getElementById('modalInput').value);this.hideModal();};
+            document.getElementById('modalConfirm').onclick=ok;
+            document.getElementById('modalCancel').onclick=()=>this.hideModal();
+            document.getElementById('modalInput').onkeydown=e=>{if(e.key==='Enter')ok();};
+        },
+        showCreateCodeModal(fid) {
+            if(!fid){if(!this.state.folders.length){this.toast('Buat folder terlebih dahulu','error');return;}fid=this.state.activeFolderId||this.state.folders[0].id;}
+            this.showModal(`<h3>Buat Kode Baru</h3><p>Masukkan nama untuk kode Lua.</p><div class="input-group"><label>Nama Kode</label><input type="text" id="modalInput" placeholder="contoh: Main Script" maxlength="50"></div><div class="modal-actions"><button class="btn-modal btn-cancel" id="modalCancel">Batal</button><button class="btn-modal btn-confirm" id="modalConfirm">Buat</button></div>`);
+            const ok=()=>{this.createItem(fid,document.getElementById('modalInput').value);this.hideModal();};
+            document.getElementById('modalConfirm').onclick=ok;
+            document.getElementById('modalCancel').onclick=()=>this.hideModal();
+            document.getElementById('modalInput').onkeydown=e=>{if(e.key==='Enter')ok();};
+        },
+        showRenameModal(type,fid,iid) {
+            let cn='';
+            if(type==='folder'){const f=this.getFolder(fid);if(f)cn=f.name;}
+            else{const f=this.getFolder(fid);if(f){const it=f.items.find(x=>x.id===iid);if(it)cn=it.name;}}
+            this.showModal(`<h3>Ubah Nama</h3><p>Masukkan nama baru.</p><div class="input-group"><label>Nama Baru</label><input type="text" id="modalInput" value="${this.escHtml(cn)}" maxlength="50"></div><div class="modal-actions"><button class="btn-modal btn-cancel" id="modalCancel">Batal</button><button class="btn-modal btn-confirm" id="modalConfirm">Simpan</button></div>`);
+            const ok=()=>{if(type==='folder')this.renameFolder(fid,document.getElementById('modalInput').value);else this.renameItem(fid,iid,document.getElementById('modalInput').value);this.hideModal();};
+            document.getElementById('modalConfirm').onclick=ok;
+            document.getElementById('modalCancel').onclick=()=>this.hideModal();
+            document.getElementById('modalInput').onkeydown=e=>{if(e.key==='Enter')ok();};
+            setTimeout(()=>{const i=document.getElementById('modalInput');if(i)i.select();},120);
+        },
+        showDeleteModal(type,fid,iid) {
+            let n='';
+            if(type==='folder'){const f=this.getFolder(fid);if(f)n=f.name;}
+            else{const f=this.getFolder(fid);if(f){const it=f.items.find(x=>x.id===iid);if(it)n=it.name;}}
+            const l=type==='folder'?'folder':'kode';
+            this.showModal(`<h3>Hapus ${l.charAt(0).toUpperCase()+l.slice(1)}</h3><p>Yakin ingin menghapus <strong>"${this.escHtml(n)}"</strong>? Tindakan ini tidak dapat dibatalkan.</p><div class="modal-actions"><button class="btn-modal btn-cancel" id="modalCancel">Batal</button><button class="btn-modal btn-confirm danger" id="modalConfirm">Hapus</button></div>`);
+            document.getElementById('modalConfirm').onclick=()=>{if(type==='folder')this.deleteFolder(fid);else this.deleteItem(fid,iid);this.hideModal();};
+            document.getElementById('modalCancel').onclick=()=>this.hideModal();
+        },
+
+        toast(msg, type='info') {
+            const c=document.getElementById('toast-container');
+            const icons={success:'fa-check-circle',error:'fa-exclamation-circle',info:'fa-info-circle'};
+            const el=document.createElement('div'); el.className=`toast ${type}`;
+            el.innerHTML=`<i class="fas ${icons[type]||icons.info} toast-icon"></i><span>${msg}</span>`;
+            c.appendChild(el);
+            setTimeout(()=>{el.classList.add('removing');setTimeout(()=>el.remove(),300);},3000);
+        },
+
+        openSidebarMobile() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-backdrop').classList.add('show'); },
+        closeSidebarMobile() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-backdrop').classList.remove('show'); },
+
+        bindEvents() {
+            document.getElementById('btnHamburger').onclick=()=>{const s=document.getElementById('sidebar');s.classList.contains('open')?this.closeSidebarMobile():this.openSidebarMobile();};
+            document.getElementById('sidebar-backdrop').onclick=()=>this.closeSidebarMobile();
+            document.getElementById('btnNewFolder').onclick=()=>this.showCreateFolderModal();
+            document.getElementById('btnNewCode').onclick=()=>this.showCreateCodeModal();
+
+            document.getElementById('sidebarList').addEventListener('click', e => {
+                const ab = e.target.closest('[data-action]');
+                if (ab) {
+                    e.stopPropagation();
+                    const a=ab.dataset.action, fid=ab.dataset.folderId, iid=ab.dataset.itemId;
+                    if(a==='add-code')this.showCreateCodeModal(fid);
+                    else if(a==='rename-folder')this.showRenameModal('folder',fid);
+                    else if(a==='delete-folder')this.showDeleteModal('folder',fid);
+                    else if(a==='rename-item')this.showRenameModal('item',fid,iid);
+                    else if(a==='delete-item')this.showDeleteModal('item',fid,iid);
+                    return;
+                }
+                const fh=e.target.closest('.folder-header');
+                if(fh){this.toggleFolder(fh.dataset.folderId);this.selectFolder(fh.dataset.folderId);return;}
+                const ci=e.target.closest('.code-item');
+                if(ci){this.selectItem(ci.dataset.folderId,ci.dataset.itemId);return;}
+            });
+
+            document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)this.hideModal();});
+
+            document.addEventListener('keydown', e => {
+                if(e.key==='Escape'){if(document.getElementById('modal-overlay').classList.contains('show'))this.hideModal();else this.closeSidebarMobile();}
+                if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();this.saveState();this.toast('Data tersimpan','success');}
+                if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==='O'||e.key==='o')){e.preventDefault();this.runObfuscate();}
+            });
+        },
+
+        bindMainEvents() {
+            document.querySelectorAll('.tab-btn').forEach(b=>{b.onclick=()=>{this.state.activeTab=b.dataset.tab;this.saveState();this.renderMain();};});
+            const ob=document.getElementById('btnObfuscate');if(ob)ob.onclick=()=>this.runObfuscate();
+            const co=document.getElementById('btnCopyOriginal');if(co)co.onclick=()=>this.copyCode('original');
+            const cb=document.getElementById('btnCopyObfuscated');if(cb)cb.onclick=()=>this.copyCode('obfuscated');
+            const ta=document.getElementById('codeTextarea');
+            if(ta&&!ta.readOnly){
+                ta.addEventListener('input',()=>this.updateOriginal(ta.value));
+                ta.addEventListener('keydown',e=>{
+                    if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart,en=ta.selectionEnd;ta.value=ta.value.substring(0,s)+'    '+ta.value.substring(en);ta.selectionStart=ta.selectionEnd=s+4;this.updateOriginal(ta.value);}
+                });
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
