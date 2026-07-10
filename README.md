@@ -14,4 +14,5 @@ Salin hasilnya di tab Terobfuscasi
 ***Created by Paanz Studio***
 
 ***Website Here !***
-alfanrizkyw.github.io/Lua-Obfuscator-By-Paanz-Studio
+
+[alfanrizkyw.github.io/Lua-Obfuscator-By-Paanz-Studio](https://alfanrizkyw.github.io/Lua-Obfuscator-By-Paanz-Studio/)
